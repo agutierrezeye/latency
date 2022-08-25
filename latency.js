@@ -1,3 +1,13 @@
+// // Conexion BD
+//                     // nombre del módulo
+// const express = require("express");
+// const app = express();
+// const port = 3000;
+
+// app.listen(port, () => {
+//     console.log("El servidor está inicializado en el puerto: ", port);
+//    });
+
 const child = require("child_process");
 const fs = require("fs");
 
@@ -16,6 +26,9 @@ const hosts = ["8.8.8.8"];
 
 run();
 
+function delay(timeout) {
+    return new Promise((resolve) => setTimeout(resolve, timeout));
+}
 function getDate() {
     const date = new Date().toLocaleDateString("pt-PT", {
         timeZone: "America/Mexico_City",
@@ -27,11 +40,11 @@ function getFile() {
     const date = getDate();
     let file = null;
     try {
-        file = fs.readFileSync(date + "-logDelay.txt", "utf8");
+        file = fs.readFileSync("logDelay.txt", "utf8");
     } catch {
-        if (!fs.existsSync(date + "-logDelay.txt")) {
-            fs.writeFileSync(date + "-logDelay.txt", ".");
-            file = fs.readFileSync(date + "-logDelay.txt", "utf8");
+        if (!fs.existsSync("logDelay.txt")) {
+            fs.writeFileSync("logDelay.txt", ".");
+            file = fs.readFileSync("logDelay.txt", "utf8");
         }
         if (!file) throw new Error("Error, not detect file logs");
     }
@@ -78,23 +91,18 @@ function getHost(host) {
         const date = getDate();
         next++;
         console.log("");
-        // Obtiene los nuevos logs
         const newLogs = getNewLogs();
-        // Obtiene los logs del archivo
         const logsFile = getLogsFile();
-        // Comprueba si en el primer hueco del array esta el titulo, si no lo tiene lo añade
         if (arrayTodo[0] !== "Fecha, MS, IP, status") arrayTodo.push("Fecha, MS, IP, status");
-        // Junta el array de los nuevos logs y los logs del archivo, todo en un solo array
         arrayTodo.push(...[...logsFile, ...newLogs]);
         arrayTodo = arrayTodo.filter((x) => x !== undefined || !x);
-        // Añade todos los logs al archivo
-        fs.writeFileSync(date + "-logDelay.txt", arrayTodo.join("\n"));
+        fs.writeFileSync("logDelay.txt", arrayTodo.join("\n"));
         run();
     });
 }
 
 let index = 0;
-function getLatency(data, host) {
+async function getLatency(data, host) {
     const dateAndTime = new Date().toLocaleString("pt-PT", {
         timeZone: "America/Mexico_City",
     });
@@ -115,6 +123,7 @@ function getLatency(data, host) {
             if (number === 0) {
                 statusColor = "\x1b[31m{message}\x1b[0m";
                 status = "Conexion perdida";
+                await delay(3000);
             } else if (number <= 100) {
                 statusColor = "\x1b[32m{message}\x1b[0m";
                 status = "Conexion con latencia estable";
@@ -122,9 +131,9 @@ function getLatency(data, host) {
                 statusColor = "\x1b[31m{message}\x1b[0m";
                 status = "Conexion con latencia lenta";
             }
-            arrayNuevo.push(`${dateAndTime.replace(",","")} ${number} ${ip} ${status}`);
+            arrayNuevo.push(`${dateAndTime} ${number} ${ip} ${status}`);
             console.log(
-                `${dateAndTime.replace(",","")} ${number} ms ${ip} - ${host} - ${statusColor.replace(
+                `${dateAndTime} ${number} ms ${ip} - ${host} - ${statusColor.replace(
                     "{message}",
                     status
                 )}`
